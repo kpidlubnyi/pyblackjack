@@ -3,6 +3,7 @@ from random import choice, shuffle, randint
 from time import sleep
 
 
+
 class Card:
     def __init__(self, rank, suit):
         self.rank = rank
