@@ -1,24 +1,19 @@
 from Classes import Game
+import keyboard
+from time import sleep
 
 game = Game()
 
 while game.balance >= 20:
+    keyboard.unhook_all()
     game.betting()
 
     while game.is_still_on:
-        while True:
-            action = int(input("Choose your action: "))
-            if action not in (1, 2):
-                print("ONLY 1 OR 2")
-            else:
-                break
+        if keyboard.is_pressed('1'):
+            game.hit()
+            sleep(0.2)
+        elif keyboard.is_pressed('0'):
+            game.stand()
+            sleep(0.2)
 
-        match action:
-            case 1:
-                game.hit()
-            case 2:
-                game.stand()
-    print("IT'S OVER OF THE ROUND")
 print("SEEMS LIKE YOU DON'T HAVE EVEN PENNY! SEE YOU LATER!")
-
-

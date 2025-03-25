@@ -1,6 +1,7 @@
 from itertools import product
 from random import choice, shuffle, randint
 from time import sleep
+from enum import StrEnum
 
 
 class Card:
@@ -156,6 +157,32 @@ def is_smaller_21(n: int):
     return False if n > 21 else True
 
 
+class CommunicateWindow(StrEnum):
+    WELCOME = f"""{f'+-------------------------------+':^60}
+{f'|    WELCOME IN PYBLACKJACK!    |':^60}
+{f'+-------------------------------+':^60}"""
+
+    DEFAULT = f"""
+
+
+"""
+    BET = f"""{f'+-------------------------------+':^60}
+{f'|    Enter your bet: ___        |':^60}
+{f'+-------------------------------+':^60}"""
+
+    WIN = f"""{f'+-------------------------------+':^60}
+{f'|          YOU WIN!!!           |':^60}
+{f'+-------------------------------+':^60}"""
+
+    LOSE = f"""{f'+-------------------------------+':^60}
+{f'|          YOU LOSE!!!          |':^60}
+{f'+-------------------------------+':^60}"""
+
+    DRAW = f"""{f'+-------------------------------+':^60}
+{f'|            DRAW!!!            |':^60}
+{f'+-------------------------------+':^60}"""
+
+
 class Game:
     def __init__(self, balance: int = 500):
         self.deck = FrenchDeck() + FrenchDeck() + FrenchDeck() + FrenchDeck()
@@ -165,9 +192,10 @@ class Game:
         self.dealer = Dealer()
         self.table = Table(self.dealer, self.player)
         self.bet = 0
-        self.is_still_on = True
+        self.is_still_on = False
+        self.communicate_window = CommunicateWindow.WELCOME
 
-        print("WELCOME TO PYBLACKJACK!")
+        print(self)
         sleep(3)
 
     def __repr__(self):
@@ -180,13 +208,11 @@ class Game:
 {'=' * 60}
    Dealer\'s Hand:{f'Cards remaining: {str(len(self.deck))}':>{55 - len('   Dealer\'s Hand:')}}
 {str(self.dealer):^30}
-
-
-
+{self.communicate_window}
    Your Hand:
 {str(self.player):^30}
 {'=' * 60}
-{'[HIT(1)]                 [STAND(2)]':^60}
+{'[HIT(1)]                 [STAND(0)]':^60}
 {'=' * 60}
 """
 
@@ -194,12 +220,14 @@ class Game:
         return self.dealer.cards[1].hidden
 
     def start_round(self):
+        self.communicate_window = CommunicateWindow.DEFAULT
         self.is_still_on = True
 
         print(self)
         sleep(2)
 
         turns = [self.player, self.dealer] * 2
+
         for hand in turns:
             hand.pick_card_from(self.deck)
             print(self)
@@ -220,10 +248,13 @@ class Game:
 
     def dealers_turn(self):
         self.dealer.show_second_card()
+        print(self)
+        sleep(2)
 
         while abs(self.dealer) < 17:
             self.dealer.pick_card_from(self.deck)
             print(self)
+            sleep(1)
 
         if abs(self.dealer) > 21:
             self.win_round()
@@ -231,8 +262,11 @@ class Game:
             self.summarize_round()
 
     def betting(self):
+        self.communicate_window = CommunicateWindow.BET
+        print(self)
+
         while True:
-            amount = int(input("Enter the bet amount: "))
+            amount = int(input())
             if self.bet_is_valid(amount):
                 break
         self.bet += amount
@@ -245,6 +279,7 @@ class Game:
     def hit(self):
         self.player.pick_card_from(self.deck)
         print(self)
+
         if not is_smaller_21(abs(self.player)):
             self.lose_round()
         elif abs(self.player) == 21:
@@ -256,26 +291,43 @@ class Game:
         self.dealers_turn()
 
     def clean_table(self):
-        self.bet = 0
         self.player.cards = []
         self.dealer.cards = []
 
-    def lose_round(self):
-        print('YOU LOSE!')
-        print(self)
-        self.clean_table()
+    def clean_bet(self, result: str):
+        match result:
+            case 'win':
+                self.balance += 2 * self.bet
+                self.bet = 0
+            case 'draw':
+                self.balance += self.bet
+                self.bet = 0
+            case 'lose':
+                self.bet = 0
+
+    def end_round(self):
         self.is_still_on = False
+
+    def lose_round(self):
+        self.communicate_window = CommunicateWindow.LOSE
+        self.clean_bet('lose')
+        print(self)
+        sleep(4)
+        self.clean_table()
+        self.end_round()
 
     def win_round(self):
-        print('YOU WIN!')
+        self.communicate_window = CommunicateWindow.WIN
+        self.clean_bet('win')
         print(self)
-        self.balance += 2 * self.bet
+        sleep(4)
         self.clean_table()
-        self.is_still_on = False
+        self.end_round()
 
     def draw(self):
-        print('DRAW!')
+        self.communicate_window = CommunicateWindow.DRAW
+        self.clean_bet('draw')
         print(self)
-        self.balance += self.bet
+        sleep(4)
         self.clean_table()
-        self.is_still_on = False
+        self.end_round()
