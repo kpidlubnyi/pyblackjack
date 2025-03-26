@@ -2,7 +2,7 @@ from itertools import product
 from random import choice, shuffle, randint
 from time import sleep
 from enum import StrEnum
-
+import keyboard
 
 
 class Card:
@@ -168,8 +168,7 @@ class CommunicateWindow(StrEnum):
 
 """
     BET = f"""{f'+-------------------------------+':^60}
-{f'|    Enter your bet: ___        |':^60}
-{f'+-------------------------------+':^60}"""
+             |      Enter your bet: """
 
     WIN = f"""{f'+-------------------------------+':^60}
 {f'|          YOU WIN!!!           |':^60}
@@ -193,7 +192,9 @@ class Game:
         self.dealer = Dealer()
         self.table = Table(self.dealer, self.player)
         self.bet = 0
+        self.bet_field = ['_', '_', '_', '_']
         self.is_still_on = False
+        self.is_betting = False
         self.communicate_window = CommunicateWindow.WELCOME
 
         print(self)
@@ -209,7 +210,8 @@ class Game:
 {'=' * 60}
    Dealer\'s Hand:{f'Cards remaining: {str(len(self.deck))}':>{55 - len('   Dealer\'s Hand:')}}
 {str(self.dealer):^30}
-{self.communicate_window}
+{self.communicate_window + (f'{''.join(self.bet_field)}     |\n             ' +
+                            '+-------------------------------+' if self.is_betting else '')}
    Your Hand:
 {str(self.player):^30}
 {'=' * 60}
@@ -223,6 +225,7 @@ class Game:
     def start_round(self):
         self.communicate_window = CommunicateWindow.DEFAULT
         self.is_still_on = True
+        self.is_betting = False
 
         print(self)
         sleep(2)
@@ -263,13 +266,12 @@ class Game:
             self.summarize_round()
 
     def betting(self):
+        self.clean_bet_field()
+        self.is_betting = True
         self.communicate_window = CommunicateWindow.BET
-        print(self)
 
-        while True:
-            amount = int(input())
-            if self.bet_is_valid(amount):
-                break
+        amount = self.input_bet()
+
         self.bet += amount
         self.balance -= amount
         self.start_round()
@@ -332,3 +334,53 @@ class Game:
         sleep(4)
         self.clean_table()
         self.end_round()
+
+    def input_bet(self):
+        def add_to_arr(n: str):
+            if self.bet_field[0] != '_':
+                return
+    
+            for i in range(len(self.bet_field)-1):
+                self.bet_field[i] = self.bet_field[i+1]
+            self.bet_field[-1] = n
+            sleep(0.1)
+
+        def remove_from_arr():
+            if self.bet_field[-1] == '_':
+                return
+
+            for i in range(1, len(self.bet_field))[::-1]:
+                self.bet_field[i] = self.bet_field[i-1]
+            self.bet_field[0] = '_'
+            sleep(0.1)
+
+        def parse_bet():
+            underscores = list()
+
+            if '_' in ''.join(self.bet_field):
+                for i, symbol in enumerate(self.bet_field):
+                    if symbol == '_':
+                        underscores.append(i)
+
+            for i in underscores[::-1]:
+                del self.bet_field[i]
+
+            return int(''.join(self.bet_field))
+
+        while True:
+            sleep(0.1)
+            print(self)
+            event = keyboard.read_event(suppress=True)
+
+            if event.name.isdigit():
+                if event.name == '0' and self.bet_field[-1] == '_':
+                    pass
+                else:
+                    add_to_arr(event.name)
+            elif event.name == 'backspace':
+                remove_from_arr()
+            elif event.name == 'enter':
+                return parse_bet()
+
+    def clean_bet_field(self):
+        self.bet_field = ['_','_','_','_']
