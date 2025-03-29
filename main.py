@@ -9,11 +9,21 @@ while game.balance >= 20:
     game.betting()
 
     while game.is_still_on:
-        if keyboard.is_pressed('1'):
-            game.hit()
-            sleep(0.2)
-        elif keyboard.is_pressed('0'):
-            game.stand()
-            sleep(0.2)
+        event = keyboard.read_event(suppress=True)
 
-print("SEEMS LIKE YOU DON'T HAVE EVEN PENNY! SEE YOU LATER!")
+        match event.name:
+            case '1':
+                game.hit()
+                sleep(0.2)
+            case '0':
+                game.stand()
+                sleep(0.2)
+            case '2':
+                game.double_down()
+                sleep(0.2)
+            case '3':
+                game.split()
+                sleep(0.2)
+            case 'esc':
+                game.exit_game()
+
